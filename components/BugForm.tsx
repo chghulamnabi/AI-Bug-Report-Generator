@@ -1,7 +1,7 @@
-
 import React from 'react';
 import type { BugReportInput, Screenshot } from '../types';
 import UploadIcon from './icons/UploadIcon';
+import TrashIcon from './icons/TrashIcon';
 
 interface BugFormProps {
   bugInput: BugReportInput;
@@ -10,15 +10,17 @@ interface BugFormProps {
   onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveScreenshot: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onRemoveBug: () => void;
+  index: number;
+  isRemovable: boolean;
 }
 
-const InputField: React.FC<{ name: keyof BugReportInput, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, type?: string, required?: boolean }> = ({ name, label, value, onChange, placeholder, type = "text", required = true }) => (
+const InputField: React.FC<{ name: keyof Omit<BugReportInput, 'id'>, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, type?: string, required?: boolean }> = ({ name, label, value, onChange, placeholder, type = "text", required = true }) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+    <label htmlFor={`${name}-${label}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
     <input
       type={type}
-      id={name}
+      id={`${name}-${label}`}
       name={name}
       value={value}
       onChange={onChange}
@@ -29,11 +31,11 @@ const InputField: React.FC<{ name: keyof BugReportInput, label: string, value: s
   </div>
 );
 
-const TextareaField: React.FC<{ name: keyof BugReportInput, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, placeholder: string, rows?: number }> = ({ name, label, value, onChange, placeholder, rows = 4 }) => (
+const TextareaField: React.FC<{ name: keyof Omit<BugReportInput, 'id'>, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, placeholder: string, rows?: number }> = ({ name, label, value, onChange, placeholder, rows = 4 }) => (
   <div>
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+    <label htmlFor={`${name}-${label}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
     <textarea
-      id={name}
+      id={`${name}-${label}`}
       name={name}
       value={value}
       onChange={onChange}
@@ -45,9 +47,18 @@ const TextareaField: React.FC<{ name: keyof BugReportInput, label: string, value
   </div>
 );
 
-const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, isLoading, onInputChange, onFileChange, onRemoveScreenshot, onSubmit }) => {
+const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, onInputChange, onFileChange, onRemoveScreenshot, onRemoveBug, index, isRemovable }) => {
   return (
-    <form onSubmit={onSubmit} className="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+    <div className="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Bug #{index + 1}</h2>
+        {isRemovable && (
+          <button type="button" onClick={onRemoveBug} className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition">
+            <TrashIcon className="w-5 h-5"/>
+          </button>
+        )}
+      </div>
+      
       <InputField
         name="title"
         label="Bug Title"
@@ -98,9 +109,9 @@ const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, isLoading, onIn
             <div className="space-y-1 text-center">
                 <UploadIcon className="mx-auto h-12 w-12 text-gray-400"/>
               <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                <label htmlFor="screenshot" className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 dark:ring-offset-gray-800 focus-within:ring-primary-500">
+                <label htmlFor={`screenshot-${bugInput.id}`} className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 dark:ring-offset-gray-800 focus-within:ring-primary-500">
                   <span>Upload a file</span>
-                  <input id="screenshot" name="screenshot" type="file" className="sr-only" onChange={onFileChange} accept="image/png, image/jpeg, image/gif, image/webp" />
+                  <input id={`screenshot-${bugInput.id}`} name="screenshot" type="file" className="sr-only" onChange={onFileChange} accept="image/png, image/jpeg, image/gif, image/webp" />
                 </label>
                 <p className="pl-1">or drag and drop</p>
               </div>
@@ -109,23 +120,7 @@ const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, isLoading, onIn
           </div>
         )}
       </div>
-
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:ring-offset-gray-800 focus:ring-primary-500 disabled:bg-primary-300 disabled:cursor-not-allowed transition-colors"
-      >
-        {isLoading ? (
-          <>
-            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Generating...
-          </>
-        ) : 'Generate Report'}
-      </button>
-    </form>
+    </div>
   );
 };
 

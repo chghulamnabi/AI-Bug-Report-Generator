@@ -1,11 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
-import type { GeneratedReport } from '../types';
+import type { GeneratedReport, Screenshot } from '../types';
 import ClipboardIcon from './icons/ClipboardIcon';
 
 interface ReportDisplayProps {
-  report: GeneratedReport | null;
+  reports: GeneratedReport[];
   isLoading: boolean;
+  bugCount: number;
+  projectName: string;
+  buildNumber: string;
+  companyLogo: Screenshot | null;
 }
 
 const ReportSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -16,7 +19,7 @@ const ReportSection: React.FC<{ title: string; children: React.ReactNode }> = ({
 );
 
 const LoadingSkeleton: React.FC = () => (
-  <div className="space-y-6 animate-pulse">
+  <div className="space-y-6 animate-pulse p-4 mb-4 border border-gray-200 dark:border-gray-700 rounded-lg">
     <div className="space-y-2">
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
         <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-full"></div>
@@ -29,25 +32,21 @@ const LoadingSkeleton: React.FC = () => (
         <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
         <div className="h-16 bg-gray-300 dark:bg-gray-600 rounded w-full"></div>
     </div>
-    <div className="space-y-2">
-        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-        <div className="h-20 bg-gray-300 dark:bg-gray-600 rounded w-full"></div>
-    </div>
   </div>
 );
 
-const ReportDisplay: React.FC<ReportDisplayProps> = ({ report, isLoading }) => {
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+const SingleReport: React.FC<{ report: GeneratedReport, index: number }> = ({ report, index }) => {
+    const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
 
-  useEffect(() => {
-    if (copyStatus === 'copied') {
-      const timer = setTimeout(() => setCopyStatus('idle'), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [copyStatus]);
+    useEffect(() => {
+        if (copyStatus === 'copied') {
+        const timer = setTimeout(() => setCopyStatus('idle'), 2000);
+        return () => clearTimeout(timer);
+        }
+    }, [copyStatus]);
 
-  const generateReportText = (reportData: GeneratedReport): string => {
-    return `
+    const generateReportText = (reportData: GeneratedReport): string => {
+        return `
 **Bug Report: ${reportData.suggestedTitle}**
 
 **Summary:**
@@ -72,21 +71,62 @@ ${reportData.impact}
 
 **Suggested Fix:**
 ${reportData.suggestedFix || 'N/A'}
-    `.trim();
-  };
+        `.trim();
+    };
 
-  const handleCopy = () => {
-    if (report) {
-      navigator.clipboard.writeText(generateReportText(report));
-      setCopyStatus('copied');
-    }
-  };
+    const handleCopy = () => {
+        if (report) {
+            navigator.clipboard.writeText(generateReportText(report));
+            setCopyStatus('copied');
+        }
+    };
+    
+    return (
+        <article className="space-y-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg not-last:mb-6">
+            <div className="relative">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 break-words pr-24">
+                  <span className="text-primary-500 mr-2">#{index + 1}</span>{report.suggestedTitle}
+                </h2>
+                <button
+                onClick={handleCopy}
+                className="copy-button absolute top-0 right-0 flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition"
+                >
+                <ClipboardIcon className="w-4 h-4" />
+                {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
+                </button>
+            </div>
+            <ReportSection title="Summary"><p>{report.summary}</p></ReportSection>
+            <ReportSection title="Steps to Reproduce">
+                <ol className="list-decimal list-inside space-y-1">{report.stepsToReproduce.map((step, i) => <li key={i}>{step}</li>)}</ol>
+            </ReportSection>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ReportSection title="Expected Behavior"><p>{report.expectedBehavior}</p></ReportSection>
+                <ReportSection title="Actual Behavior"><p>{report.actualBehavior}</p></ReportSection>
+            </div>
+            <ReportSection title="Impact"><p>{report.impact}</p></ReportSection>
+            <ReportSection title="Environment">
+                <ul className="list-disc list-inside">
+                <li><strong>Browser:</strong> {report.environment.browser}</li>
+                <li><strong>OS:</strong> {report.environment.os}</li>
+                <li><strong>Device:</strong> {report.environment.device}</li>
+                </ul>
+            </ReportSection>
+            {report.suggestedFix && <ReportSection title="Suggested Fix"><p>{report.suggestedFix}</p></ReportSection>}
+        </article>
+    )
+}
+
+const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports, isLoading, bugCount, projectName, buildNumber, companyLogo }) => {
 
   if (isLoading) {
-    return <LoadingSkeleton />;
+    return (
+        <div>
+            {Array.from({ length: bugCount }).map((_, i) => <LoadingSkeleton key={i} />)}
+        </div>
+    );
   }
 
-  if (!report) {
+  if (reports.length === 0) {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 py-10">
         <p>Your generated report will appear here.</p>
@@ -95,56 +135,20 @@ ${reportData.suggestedFix || 'N/A'}
   }
 
   return (
-    <div className="space-y-6">
-      <div className="relative">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{report.suggestedTitle}</h2>
-        <button
-          onClick={handleCopy}
-          className="absolute top-0 right-0 flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition"
-        >
-          <ClipboardIcon className="w-4 h-4" />
-          {copyStatus === 'copied' ? 'Copied!' : 'Copy'}
-        </button>
-      </div>
-
-      <ReportSection title="Summary">
-        <p>{report.summary}</p>
-      </ReportSection>
-
-      <ReportSection title="Steps to Reproduce">
-        <ol className="list-decimal list-inside space-y-1">
-          {report.stepsToReproduce.map((step, index) => (
-            <li key={index}>{step}</li>
-          ))}
-        </ol>
-      </ReportSection>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ReportSection title="Expected Behavior">
-          <p>{report.expectedBehavior}</p>
-        </ReportSection>
-        <ReportSection title="Actual Behavior">
-          <p>{report.actualBehavior}</p>
-        </ReportSection>
-      </div>
-      
-      <ReportSection title="Impact">
-        <p>{report.impact}</p>
-      </ReportSection>
-
-      <ReportSection title="Environment">
-        <ul className="list-disc list-inside">
-          <li><strong>Browser:</strong> {report.environment.browser}</li>
-          <li><strong>OS:</strong> {report.environment.os}</li>
-          <li><strong>Device:</strong> {report.environment.device}</li>
-        </ul>
-      </ReportSection>
-
-      {report.suggestedFix && (
-        <ReportSection title="Suggested Fix">
-          <p>{report.suggestedFix}</p>
-        </ReportSection>
+    <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-6 font-sans">
+      {(projectName || buildNumber || companyLogo) && (
+        <header className="flex items-center justify-between pb-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+            <div>
+                {projectName && <h1 className="text-3xl font-bold">{projectName}</h1>}
+                {buildNumber && <p className="text-md text-gray-500 dark:text-gray-400">Build: {buildNumber}</p>}
+            </div>
+            {companyLogo && <img src={companyLogo.dataUrl} alt="Company Logo" className="max-h-12 w-auto"/>}
+        </header>
       )}
+
+      {reports.map((report, index) => (
+        <SingleReport key={report.originalId} report={report} index={index} />
+      ))}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { BugReportInput, GeneratedReport, Screenshot } from '../types';
 
@@ -36,7 +35,7 @@ const reportSchema = {
 };
 
 
-const buildPrompt = (bugInput: BugReportInput, hasImage: boolean) => {
+const buildPrompt = (bugInput: Omit<BugReportInput, 'id'>, hasImage: boolean) => {
   return `
 You are an expert QA engineer. Your task is to take the following user-provided information and generate a professional, well-structured bug report.
 The report should be clear, concise, and easy for a developer to understand and act upon.
@@ -57,7 +56,7 @@ Format your response strictly as a JSON object that adheres to the provided sche
 };
 
 
-export const generateBugReport = async (bugInput: BugReportInput, screenshot: Screenshot | null): Promise<GeneratedReport> => {
+export const generateBugReport = async (bugInput: Omit<BugReportInput, 'id'>, screenshot: Screenshot | null): Promise<Omit<GeneratedReport, 'originalId'>> => {
   const promptText = buildPrompt(bugInput, !!screenshot);
   
   const contentParts: any[] = [{ text: promptText }];
@@ -84,7 +83,7 @@ export const generateBugReport = async (bugInput: BugReportInput, screenshot: Sc
   try {
     const jsonString = response.text;
     const reportData = JSON.parse(jsonString);
-    return reportData as GeneratedReport;
+    return reportData as Omit<GeneratedReport, 'originalId'>;
   } catch (error) {
     console.error("Failed to parse Gemini response:", response.text);
     throw new Error("The AI returned an invalid response format.");

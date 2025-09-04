@@ -1,5 +1,5 @@
-
 export interface BugReportInput {
+  id: number;
   title: string;
   url: string;
   steps: string;
@@ -11,9 +11,11 @@ export interface Screenshot {
   base64: string;
   mimeType: string;
   name: string;
+  dataUrl: string;
 }
 
 export interface GeneratedReport {
+  originalId: number;
   suggestedTitle: string;
   summary: string;
   stepsToReproduce: string[];
