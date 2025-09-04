@@ -1,0 +1,132 @@
+
+import React from 'react';
+import type { BugReportInput, Screenshot } from '../types';
+import UploadIcon from './icons/UploadIcon';
+
+interface BugFormProps {
+  bugInput: BugReportInput;
+  screenshot: Screenshot | null;
+  isLoading: boolean;
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemoveScreenshot: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+}
+
+const InputField: React.FC<{ name: keyof BugReportInput, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, type?: string, required?: boolean }> = ({ name, label, value, onChange, placeholder, type = "text", required = true }) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+    <input
+      type={type}
+      id={name}
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required={required}
+      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition"
+    />
+  </div>
+);
+
+const TextareaField: React.FC<{ name: keyof BugReportInput, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, placeholder: string, rows?: number }> = ({ name, label, value, onChange, placeholder, rows = 4 }) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+    <textarea
+      id={name}
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required
+      rows={rows}
+      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition"
+    />
+  </div>
+);
+
+const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, isLoading, onInputChange, onFileChange, onRemoveScreenshot, onSubmit }) => {
+  return (
+    <form onSubmit={onSubmit} className="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+      <InputField
+        name="title"
+        label="Bug Title"
+        value={bugInput.title}
+        onChange={onInputChange}
+        placeholder="e.g., 'Save button is not working on profile page'"
+      />
+      <InputField
+        name="url"
+        label="URL / Location"
+        value={bugInput.url}
+        onChange={onInputChange}
+        placeholder="e.g., 'https://example.com/profile'"
+      />
+      <TextareaField
+        name="steps"
+        label="Steps to Reproduce"
+        value={bugInput.steps}
+        onChange={onInputChange}
+        placeholder="1. Go to the profile page&#x0a;2. Click on the 'Edit' button&#x0a;3. Change the name and click 'Save'"
+      />
+      <TextareaField
+        name="expected"
+        label="Expected Result"
+        value={bugInput.expected}
+        onChange={onInputChange}
+        placeholder="The profile name should be updated and a success message should appear."
+        rows={2}
+      />
+      <TextareaField
+        name="actual"
+        label="Actual Result"
+        value={bugInput.actual}
+        onChange={onInputChange}
+        placeholder="The page reloads, but the name is not updated."
+        rows={2}
+      />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Screenshot (Optional)</label>
+        {screenshot ? (
+          <div className="flex items-center justify-between p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700">
+            <span className="text-sm truncate text-gray-600 dark:text-gray-300">{screenshot.name}</span>
+            <button type="button" onClick={onRemoveScreenshot} className="text-red-500 hover:text-red-700 dark:hover:text-red-400 text-xs font-semibold ml-4">REMOVE</button>
+          </div>
+        ) : (
+          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-md">
+            <div className="space-y-1 text-center">
+                <UploadIcon className="mx-auto h-12 w-12 text-gray-400"/>
+              <div className="flex text-sm text-gray-600 dark:text-gray-400">
+                <label htmlFor="screenshot" className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 dark:ring-offset-gray-800 focus-within:ring-primary-500">
+                  <span>Upload a file</span>
+                  <input id="screenshot" name="screenshot" type="file" className="sr-only" onChange={onFileChange} accept="image/png, image/jpeg, image/gif, image/webp" />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF, WEBP up to 4MB</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:ring-offset-gray-800 focus:ring-primary-500 disabled:bg-primary-300 disabled:cursor-not-allowed transition-colors"
+      >
+        {isLoading ? (
+          <>
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Generating...
+          </>
+        ) : 'Generate Report'}
+      </button>
+    </form>
+  );
+};
+
+export default BugForm;

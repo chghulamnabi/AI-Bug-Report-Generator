@@ -1,0 +1,5 @@
+{
+  "name": "AI Bug Report Generator",
+  "description": "An application that uses AI to help users create detailed and well-structured bug reports from basic information and screenshots.",
+  "requestFramePermissions": []
+}
