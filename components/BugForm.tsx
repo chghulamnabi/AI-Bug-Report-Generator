@@ -1,5 +1,5 @@
 import React from 'react';
-import type { BugReportInput, Screenshot, Severity } from '../types';
+import type { BugReportInput, Screenshot } from '../types';
 import UploadIcon from './icons/UploadIcon';
 import TrashIcon from './icons/TrashIcon';
 
@@ -7,7 +7,7 @@ interface BugFormProps {
   bugInput: BugReportInput;
   screenshot: Screenshot | null;
   isLoading: boolean;
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveScreenshot: () => void;
   onRemoveBug: () => void;
@@ -15,9 +15,7 @@ interface BugFormProps {
   isRemovable: boolean;
 }
 
-const severityLevels: Severity[] = ['Low', 'Medium', 'High', 'Critical'];
-
-const InputField: React.FC<{ name: keyof Omit<BugReportInput, 'id' | 'severity'>, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, type?: string, required?: boolean }> = ({ name, label, value, onChange, placeholder, type = "text", required = true }) => (
+const InputField: React.FC<{ name: keyof Omit<BugReportInput, 'id'>, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder: string, type?: string, required?: boolean }> = ({ name, label, value, onChange, placeholder, type = "text", required = true }) => (
   <div>
     <label htmlFor={`${name}-${label}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
     <input
@@ -33,7 +31,7 @@ const InputField: React.FC<{ name: keyof Omit<BugReportInput, 'id' | 'severity'>
   </div>
 );
 
-const TextareaField: React.FC<{ name: keyof Omit<BugReportInput, 'id' | 'severity'>, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, placeholder: string, rows?: number }> = ({ name, label, value, onChange, placeholder, rows = 4 }) => (
+const TextareaField: React.FC<{ name: keyof Omit<BugReportInput, 'id'>, label: string, value: string, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void, placeholder: string, rows?: number }> = ({ name, label, value, onChange, placeholder, rows = 4 }) => (
   <div>
     <label htmlFor={`${name}-${label}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
     <textarea
@@ -68,29 +66,13 @@ const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, onInputChange, 
         onChange={onInputChange}
         placeholder="e.g., 'Save button is not working on profile page'"
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <InputField
-          name="url"
-          label="URL / Location"
-          value={bugInput.url}
-          onChange={onInputChange}
-          placeholder="e.g., 'https://example.com/profile'"
-        />
-        <div>
-          <label htmlFor={`severity-${bugInput.id}`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Severity</label>
-          <select
-              id={`severity-${bugInput.id}`}
-              name="severity"
-              value={bugInput.severity}
-              onChange={onInputChange}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition"
-          >
-              {severityLevels.map(level => (
-                  <option key={level} value={level}>{level}</option>
-              ))}
-          </select>
-        </div>
-      </div>
+      <InputField
+        name="url"
+        label="URL / Location"
+        value={bugInput.url}
+        onChange={onInputChange}
+        placeholder="e.g., 'https://example.com/profile'"
+      />
       <TextareaField
         name="steps"
         label="Steps to Reproduce"
