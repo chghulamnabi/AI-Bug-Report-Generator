@@ -20,6 +20,7 @@ const reportSchema = {
     expectedBehavior: { type: Type.STRING, description: 'A clear description of what should have happened.' },
     actualBehavior: { type: Type.STRING, description: 'A clear description of what actually happened.' },
     impact: { type: Type.STRING, description: 'The potential impact of this bug (e.g., user experience, data loss, functionality blocked).' },
+    severity: { type: Type.STRING, description: 'The severity level of the bug (Low, Medium, High, Critical).' },
     environment: {
       type: Type.OBJECT,
       properties: {
@@ -31,18 +32,19 @@ const reportSchema = {
     },
     suggestedFix: { type: Type.STRING, description: 'A brief, high-level suggestion for how to fix the bug, if obvious.' }
   },
-  required: ['suggestedTitle', 'summary', 'stepsToReproduce', 'expectedBehavior', 'actualBehavior', 'impact', 'environment']
+  required: ['suggestedTitle', 'summary', 'stepsToReproduce', 'expectedBehavior', 'actualBehavior', 'impact', 'severity', 'environment']
 };
 
 
 const buildPrompt = (bugInput: Omit<BugReportInput, 'id'>, hasImage: boolean) => {
   return `
 You are an expert QA engineer. Your task is to take the following user-provided information and generate a professional, well-structured bug report.
-The report should be clear, concise, and easy for a developer to understand and act upon.
+The report should be clear, concise, and easy for a developer to understand and act upon. Consider the provided severity level when assessing the impact.
 
 User Input:
 - Title: ${bugInput.title}
 - URL: ${bugInput.url}
+- Severity: ${bugInput.severity}
 - Steps to Reproduce:
 ${bugInput.steps}
 - Expected Result: ${bugInput.expected}

@@ -1,3 +1,5 @@
+export type Severity = 'Low' | 'Medium' | 'High' | 'Critical';
+
 export interface BugReportInput {
   id: number;
   title: string;
@@ -5,6 +7,7 @@ export interface BugReportInput {
   steps: string;
   expected: string;
   actual: string;
+  severity: Severity;
 }
 
 export interface Screenshot {
@@ -22,6 +25,7 @@ export interface GeneratedReport {
   expectedBehavior: string;
   actualBehavior: string;
   impact: string;
+  severity: Severity;
   environment: {
     browser: string;
     os: string;
