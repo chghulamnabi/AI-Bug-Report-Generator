@@ -73,6 +73,39 @@ const BugForm: React.FC<BugFormProps> = ({ bugInput, screenshot, onInputChange, 
         onChange={onInputChange}
         placeholder="e.g., 'https://example.com/profile'"
       />
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <InputField
+                name="browser"
+                label="Browser"
+                value={bugInput.browser}
+                onChange={onInputChange}
+                placeholder="e.g., Chrome, Safari"
+                required={false}
+            />
+            <InputField
+                name="os"
+                label="Operating System"
+                value={bugInput.os}
+                onChange={onInputChange}
+                placeholder="e.g., Windows 11, macOS"
+                required={false}
+            />
+            <InputField
+                name="device"
+                label="Device"
+                value={bugInput.device}
+                onChange={onInputChange}
+                placeholder="e.g., Desktop, iPhone 15"
+                required={false}
+            />
+        </div>
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+            Leave environment fields blank to let the AI try to auto-detect them.
+        </p>
+      </div>
+
       <TextareaField
         name="steps"
         label="Steps to Reproduce"

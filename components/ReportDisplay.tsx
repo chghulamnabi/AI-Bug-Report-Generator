@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import type { GeneratedReport, Screenshot } from '../types';
+import { generateJiraMarkup } from '../utils';
 import ClipboardIcon from './icons/ClipboardIcon';
 import JiraIcon from './icons/JiraIcon';
 
@@ -10,9 +12,6 @@ interface ReportDisplayProps {
   projectName: string;
   buildNumber: string;
   companyLogo: Screenshot | null;
-  isJiraConfigured: boolean;
-  onCreateJiraIssue: (report: GeneratedReport) => void;
-  jiraSubmissionStatus: { [key: number]: { status: 'idle' | 'loading' | 'success' | 'error', message: string } };
 }
 
 const ReportSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -42,20 +41,25 @@ const LoadingSkeleton: React.FC = () => (
 interface SingleReportProps {
     report: GeneratedReport;
     index: number;
-    isJiraConfigured: boolean;
-    onCreateJiraIssue: (report: GeneratedReport) => void;
-    jiraStatus: { status: 'idle' | 'loading' | 'success' | 'error', message: string } | undefined;
 }
 
-const SingleReport: React.FC<SingleReportProps> = ({ report, index, isJiraConfigured, onCreateJiraIssue, jiraStatus }) => {
+const SingleReport: React.FC<SingleReportProps> = ({ report, index }) => {
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+    const [jiraCopyStatus, setJiraCopyStatus] = useState<'idle' | 'copied'>('idle');
 
     useEffect(() => {
         if (copyStatus === 'copied') {
-        const timer = setTimeout(() => setCopyStatus('idle'), 2000);
-        return () => clearTimeout(timer);
+            const timer = setTimeout(() => setCopyStatus('idle'), 2000);
+            return () => clearTimeout(timer);
         }
     }, [copyStatus]);
+
+    useEffect(() => {
+        if (jiraCopyStatus === 'copied') {
+            const timer = setTimeout(() => setJiraCopyStatus('idle'), 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [jiraCopyStatus]);
 
     const generatePlainTextForCopy = (reportData: GeneratedReport): string => {
         return `
@@ -92,8 +96,13 @@ ${reportData.suggestedFix || 'N/A'}
             setCopyStatus('copied');
         }
     };
-    
-    const jiraButtonLoading = jiraStatus?.status === 'loading';
+
+    const handleJiraCopy = () => {
+        if (report) {
+            navigator.clipboard.writeText(generateJiraMarkup(report));
+            setJiraCopyStatus('copied');
+        }
+    };
     
     return (
         <article className="space-y-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg not-last:mb-6">
@@ -110,35 +119,15 @@ ${reportData.suggestedFix || 'N/A'}
                         {copyStatus === 'copied' ? <span className="text-xs px-1">Copied!</span> : <ClipboardIcon className="w-4 h-4" />}
                     </button>
                     <button
-                        onClick={() => onCreateJiraIssue(report)}
-                        disabled={!isJiraConfigured || jiraButtonLoading}
-                        title={isJiraConfigured ? "Create Jira Issue" : "Please configure Jira settings first"}
-                        className="hide-on-pdf flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-900 text-blue-800 dark:text-blue-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={handleJiraCopy}
+                        title="Copy Jira Markup"
+                        className="hide-on-pdf flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-900 text-blue-800 dark:text-blue-200 transition"
                     >
-                        {jiraButtonLoading ? (
-                             <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        ) : (
-                            <JiraIcon className="w-4 h-4" />
-                        )}
-                        <span>{jiraButtonLoading ? 'Creating...' : 'Jira'}</span>
+                        <JiraIcon className="w-4 h-4" />
+                        <span>{jiraCopyStatus === 'copied' ? 'Copied!' : 'Copy for Jira'}</span>
                     </button>
                 </div>
             </div>
-            
-            {jiraStatus && (jiraStatus.status === 'success' || jiraStatus.status === 'error') && (
-              <div
-                className={`p-3 rounded-md text-sm ${
-                  jiraStatus.status === 'success'
-                    ? 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200'
-                    : 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
-                }`}
-              >
-                <p dangerouslySetInnerHTML={{ __html: jiraStatus.message }} />
-              </div>
-            )}
 
             <ReportSection title="Summary"><p>{report.summary}</p></ReportSection>
             <ReportSection title="Steps to Reproduce">
@@ -161,7 +150,7 @@ ${reportData.suggestedFix || 'N/A'}
     )
 }
 
-const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports, isLoading, bugCount, projectName, buildNumber, companyLogo, isJiraConfigured, onCreateJiraIssue, jiraSubmissionStatus }) => {
+const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports, isLoading, bugCount, projectName, buildNumber, companyLogo }) => {
 
   if (isLoading) {
     return (
@@ -196,9 +185,6 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({ reports, isLoading, bugCo
             key={report.originalId} 
             report={report} 
             index={index}
-            isJiraConfigured={isJiraConfigured}
-            onCreateJiraIssue={onCreateJiraIssue}
-            jiraStatus={jiraSubmissionStatus[report.originalId]}
         />
       ))}
     </div>

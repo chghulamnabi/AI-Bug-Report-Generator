@@ -1,10 +1,10 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 import type { BugReportInput, GeneratedReport, Screenshot } from './types';
 import { generateBugReport } from './services/geminiService';
-import { generateJiraMarkup } from './utils';
 import BugForm from './components/BugForm';
 import ReportDisplay from './components/ReportDisplay';
 import BugIcon from './components/icons/BugIcon';
@@ -12,21 +12,12 @@ import SparklesIcon from './components/icons/SparklesIcon';
 import DownloadIcon from './components/icons/DownloadIcon';
 import PlusCircleIcon from './components/icons/PlusCircleIcon';
 import UploadIcon from './components/icons/UploadIcon';
-import JiraIcon from './components/icons/JiraIcon';
 
 
 const App: React.FC = () => {
   const [projectName, setProjectName] = useState('');
   const [buildNumber, setBuildNumber] = useState('');
   const [companyLogo, setCompanyLogo] = useState<Screenshot | null>(null);
-
-  // Jira State
-  const [jiraDomain, setJiraDomain] = useState('');
-  const [jiraEmail, setJiraEmail] = useState('');
-  const [jiraApiToken, setJiraApiToken] = useState('');
-  const [jiraProjectKey, setJiraProjectKey] = useState('');
-  const [jiraSubmissionStatus, setJiraSubmissionStatus] = useState<{ [key: number]: { status: 'idle' | 'loading' | 'success' | 'error', message: string } }>({});
-
 
   const [bugInputs, setBugInputs] = useState<BugReportInput[]>([{
     id: Date.now(),
@@ -35,6 +26,9 @@ const App: React.FC = () => {
     steps: '',
     expected: '',
     actual: '',
+    os: '',
+    browser: '',
+    device: '',
   }]);
   const [screenshots, setScreenshots] = useState<{ [key: number]: Screenshot | null }>({});
   const [generatedReports, setGeneratedReports] = useState<GeneratedReport[]>([]);
@@ -105,6 +99,9 @@ const App: React.FC = () => {
       steps: '',
       expected: '',
       actual: '',
+      os: '',
+      browser: '',
+      device: '',
     }]);
   };
   
@@ -130,7 +127,6 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setGeneratedReports([]);
-    setJiraSubmissionStatus({});
 
     try {
       const reportPromises = bugInputs.map(bug => {
@@ -186,69 +182,7 @@ const App: React.FC = () => {
     pdf.save(`${projectName.replace(/\s/g, '_') || 'Bug'}_Report.pdf`);
   };
 
-  const handleCreateJiraIssue = async (report: GeneratedReport) => {
-    if (!jiraDomain || !jiraEmail || !jiraApiToken || !jiraProjectKey) {
-        setError("Please fill in all Jira configuration details before creating an issue.");
-        return;
-    }
-    setError(null);
-
-    setJiraSubmissionStatus(prev => ({ ...prev, [report.originalId]: { status: 'loading', message: '' } }));
-
-    const reportBody = generateJiraMarkup(report);
-
-    const issueData = {
-        fields: {
-            project: { key: jiraProjectKey.toUpperCase() },
-            summary: report.suggestedTitle,
-            description: reportBody,
-            issuetype: { name: "Bug" },
-        },
-    };
-    
-    try {
-        const response = await fetch(`https://${jiraDomain}/rest/api/2/issue`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Basic ${btoa(`${jiraEmail}:${jiraApiToken}`)}`,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify(issueData),
-        });
-
-        if (!response.ok) {
-            let errorMessage = `Jira API returned status ${response.status}.`;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.errorMessages?.join(', ') || (errorData.errors && Object.values(errorData.errors).join(', ')) || errorMessage;
-            } catch (e) { /* Ignore if response is not json */ }
-            throw new Error(errorMessage);
-        }
-
-        const result = await response.json();
-        const issueLink = `https://${jiraDomain}/browse/${result.key}`;
-        setJiraSubmissionStatus(prev => ({
-            ...prev,
-            [report.originalId]: { status: 'success', message: `Success! Issue <a href="${issueLink}" target="_blank" rel="noopener noreferrer" class="underline font-medium">${result.key}</a> created.` }
-        }));
-
-    } catch (err: any) {
-        console.error("Jira API Error:", err);
-        let message = err.message;
-        if (err instanceof TypeError) { 
-            message = "A network error occurred. This is likely due to Jira's CORS policy not allowing direct browser requests. For a production app, a backend proxy is required to handle Jira integration securely.";
-        }
-        setJiraSubmissionStatus(prev => ({
-            ...prev,
-            [report.originalId]: { status: 'error', message: `Failed to create Jira issue: ${message}` }
-        }));
-    }
-  };
-
-
   const isFormValid = bugInputs.every(bug => bug.title && bug.steps && bug.expected && bug.actual);
-  const isJiraConfigured = !!(jiraDomain && jiraEmail && jiraApiToken && jiraProjectKey);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans">
@@ -267,32 +201,6 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <JiraIcon className="w-6 h-6 text-[#0052CC]" />
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Jira Integration</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="jiraDomain" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jira Domain</label>
-                    <input type="text" id="jiraDomain" value={jiraDomain} onChange={e => setJiraDomain(e.target.value.trim())} placeholder="your-company.atlassian.net" className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition" />
-                </div>
-                <div>
-                    <label htmlFor="jiraEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Jira Email</label>
-                    <input type="email" id="jiraEmail" value={jiraEmail} onChange={e => setJiraEmail(e.target.value.trim())} placeholder="user@example.com" className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition" />
-                </div>
-                 <div>
-                    <label htmlFor="jiraApiToken" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Token</label>
-                    <input type="password" id="jiraApiToken" value={jiraApiToken} onChange={e => setJiraApiToken(e.target.value.trim())} placeholder="••••••••••••••••••••" className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition" />
-                    <a href="https://support.atlassian.com/atlassian-account/docs/manage-api-tokens-for-your-atlassian-account/" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline mt-1">How to create an API token</a>
-                 </div>
-                 <div>
-                    <label htmlFor="jiraProjectKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Project Key</label>
-                    <input type="text" id="jiraProjectKey" value={jiraProjectKey} onChange={e => setJiraProjectKey(e.target.value.trim().toUpperCase())} placeholder="e.g., 'PROJ'" className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 transition" />
-                 </div>
-              </div>
-            </div>
-
             <div className="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 space-y-4">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Project Details</h2>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,9 +299,6 @@ const App: React.FC = () => {
                 projectName={projectName}
                 buildNumber={buildNumber}
                 companyLogo={companyLogo}
-                isJiraConfigured={isJiraConfigured}
-                onCreateJiraIssue={handleCreateJiraIssue}
-                jiraSubmissionStatus={jiraSubmissionStatus}
               />
             </div>
           </div>

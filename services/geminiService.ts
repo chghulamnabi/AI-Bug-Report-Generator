@@ -36,6 +36,15 @@ const reportSchema = {
 
 
 const buildPrompt = (bugInput: Omit<BugReportInput, 'id'>, hasImage: boolean) => {
+  const environmentHint = (bugInput.browser || bugInput.os || bugInput.device)
+    ? `
+The user has provided the following environment details. Use them in your report. If any detail is missing, try to infer it.
+- Browser: ${bugInput.browser || 'Not provided'}
+- OS: ${bugInput.os || 'Not provided'}
+- Device: ${bugInput.device || 'Not provided'}
+`
+    : 'The user has not provided specific environment details. Please infer the Browser, OS, and Device from the context provided (including the screenshot if available).';
+    
   return `
 You are an expert QA engineer. Your task is to take the following user-provided information and generate a professional, well-structured bug report.
 The report should be clear, concise, and easy for a developer to understand and act upon.
@@ -47,6 +56,8 @@ User Input:
 ${bugInput.steps}
 - Expected Result: ${bugInput.expected}
 - Actual Result: ${bugInput.actual}
+
+${environmentHint}
 
 ${hasImage ? 'An image of the bug has been provided. Analyze the image for additional context like UI elements, error messages, or visual glitches.' : ''}
 

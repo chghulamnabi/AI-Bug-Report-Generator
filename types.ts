@@ -5,6 +5,9 @@ export interface BugReportInput {
   steps: string;
   expected: string;
   actual: string;
+  os: string;
+  browser: string;
+  device: string;
 }
 
 export interface Screenshot {
