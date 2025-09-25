@@ -12,6 +12,7 @@ import SparklesIcon from './components/icons/SparklesIcon';
 import DownloadIcon from './components/icons/DownloadIcon';
 import PlusCircleIcon from './components/icons/PlusCircleIcon';
 import UploadIcon from './components/icons/UploadIcon';
+import TrashIcon from './components/icons/TrashIcon';
 
 
 const App: React.FC = () => {
@@ -121,6 +122,26 @@ const App: React.FC = () => {
         return newState;
     });
   }, []);
+
+  const handleClearAll = () => {
+    setProjectName('');
+    setBuildNumber('');
+    setCompanyLogo(null);
+    setBugInputs([{
+      id: Date.now(),
+      title: '',
+      url: '',
+      steps: '',
+      expected: '',
+      actual: '',
+      os: '',
+      browser: '',
+      device: '',
+    }]);
+    setScreenshots({});
+    setGeneratedReports([]);
+    setError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,14 +271,24 @@ const App: React.FC = () => {
             ))}
             
             <div className="flex justify-between items-center gap-4">
-                 <button
-                    type="button"
-                    onClick={addBugForm}
-                    className="flex items-center gap-2 py-2 px-4 rounded-md text-sm font-medium text-primary-600 hover:bg-primary-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:ring-offset-gray-800 focus:ring-primary-500 transition-colors"
-                >
-                    <PlusCircleIcon className="w-5 h-5"/>
-                    Add Another Bug
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={addBugForm}
+                        className="flex items-center gap-2 py-2 px-4 rounded-md text-sm font-medium text-primary-600 hover:bg-primary-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:ring-offset-gray-800 focus:ring-primary-500 transition-colors"
+                    >
+                        <PlusCircleIcon className="w-5 h-5"/>
+                        Add Another Bug
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleClearAll}
+                        className="flex items-center gap-2 py-2 px-4 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:ring-offset-gray-800 focus:ring-red-500 transition-colors"
+                    >
+                        <TrashIcon className="w-5 h-5"/>
+                        Clear All
+                    </button>
+                </div>
                 <button
                     type="submit"
                     disabled={isLoading || !isFormValid}
